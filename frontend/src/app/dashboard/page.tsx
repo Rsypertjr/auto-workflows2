@@ -2,14 +2,21 @@
 'use client';
 
 import {useEffect, useState } from 'react';
-import type { SystemMetrics } from '../api/system_metrics/route.ts';
+
+interface SystemMetrics {
+    report_date: string;
+    total_active_users: number;
+    total_revenue_usd: number;
+    anomaly_detected: boolean;
+    ai_written_summary: string;
+}
 
 export default function AutomatedDashboard() {
     const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        fetch('http://localhost:3000/api/system_metrics')
+        fetch('http://localhost:8000/api/reports/latest')
             //.then((res) => res.json())
             .then((res) => {
                 if (!res.ok) throw new Error('Systems are currently unreachable.');
@@ -34,6 +41,17 @@ export default function AutomatedDashboard() {
                 <p className="text-sm text-gray-500">Last auto-generated: {metrics.report_date}</p>
             </header>
 
+            {/* Dynamic Gemini AI Narrative Highlight Panel */}
+            <section style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '1.5rem', marginBottom: '2.5rem' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#1e40af', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                🤖 Gen-AI Executive Summary
+                </h2>
+                <p style={{ fontSize: '1.125rem', lineHeight: '1.6', color: '#1e3a8a', margin: 0, fontWeight: 500 }}>
+                "{metrics.ai_written_summary}"
+                </p>
+            </section>
+
+
             <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Card 1 */}
                 <div className="p-6 bg-white shadow rounded-lg border">
@@ -43,7 +61,7 @@ export default function AutomatedDashboard() {
 
                 {/* Card 2 */}
                 <div className="p-6 bg-white shadow rounded-lg border">
-                    <h2 className="text-sm font-medium text-gray-500 uppercase">Validatede Monthly Revenue</h2>
+                    <h2 className="text-sm font-medium text-gray-500 uppercase">Validated Monthly Revenue</h2>
                     <p className="mt-2 text-3xl font-semibold text-emerald-600">
                         ${metrics.total_revenue_usd}
                     </p>

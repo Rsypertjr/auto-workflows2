@@ -1,0 +1,27 @@
+#!/bin/sh
+echo "================== Running Pre-Push Automation ======================"
+
+
+# 1. Test the Python Backend
+echo "Testing the Python FastAPI code..."
+cd backend
+python tests/
+if [ $? -ne 0]; then
+    echo "❌ ERROR: Python backend tests failed.  Push aborted."
+    exit 1
+fd  
+cd ..
+
+
+# 2. Test the Next.js Frontend
+echo "Type-checking and testing Next.js UI..."
+cd frontend
+npx tsc --noEmit && npm run test
+if [ $? -ne 0]; then
+    echo "❌ ERROR: Frontend compilation or tests failed. Push aborted."
+    exit 1
+fi  
+
+
+echo "✅ All local checks passed! Proceeding with git push."
+exit 0

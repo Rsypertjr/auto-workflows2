@@ -45,4 +45,4 @@ EXPOSE 8000
 # - '--host 0.0.0.0' binds to all network interfaces inside the isolated container
 # - '--workers 4' enables process concurrency to handle heavier traffic loads 
 # FIX: Execute via the Python module flag (-m) to safely find uvicorn if PATH fails
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["python", "-m", "uvicorn", "app.main:app","--reload","--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
