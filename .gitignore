@@ -1,0 +1,11 @@
+node_modules
+.git
+.github
+.specstory
+.vscode
+.env*
+scaffold.sh
+frontend/.next/*
+frontend/node_modules/*
+backend/tasks/token.json
+commands.txt

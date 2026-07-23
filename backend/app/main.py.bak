@@ -1,0 +1,64 @@
+import os
+import time
+from fastapi import FastAPI, Response, status
+from pydantic import BaseModel, Field
+import psutil
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import text
+
+app = FastAPI(title="Production Monitoring API")
+
+DATABASE_URL =  "postgresql+asyncpg://production_user:SecureProdPassword2026!@postgres-db:5432/production_db"
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
+
+class SystemMetrics(BaseModel):
+    cpu_usage_percent: float = Field(..., description="Current system CPU utilization")
+    memory_usage_percent: float = Field(..., description="RAM utilization percentage")
+    memory_used_gb: float = Field(..., description="Total active memory consumed in GB")
+
+class HealthStatus(BaseModel):
+    status: str
+    database: str
+    db_latency_ms: float
+    system_metrics: SystemMetrics
+
+@app.get("/health", response_model=HealthStatus)
+async def get_health_status(response: Response):
+    start_time = time.perf_counter()
+    db_connected = await verify_database_connection()
+    end_time = time.perf_counter()
+    
+    db_latency = round((end_time - start_time) * 1000, 2) if db_connected else 0.0
+    cpu_percent = psutil.cpu_percent(interval=None) 
+    virtual_mem = psutil.virtual_memory()
+    mem_used_gb = round(virtual_mem.used / (1024 ** 3), 2)
+
+    metrics = SystemMetrics(
+        cpu_usage_percent=cpu_percent,
+        memory_usage_percent=virtual_mem.percent,
+        memory_used_gb=mem_used_gb
+    )
+
+    if not db_connected or cpu_percent > 95.0 or virtual_mem.percent > 90.0:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return HealthStatus(
+            status="unhealthy",
+            database="disconnected" if not db_connected else "overloaded",
+            db_latency_ms=db_latency,
+            system_metrics=metrics
+        )
+
+    return HealthStatus(
+        status="healthy",
+        database="connected",
+        db_latency_ms=db_latency,
+        system_metrics=metrics
+    )
+
+async def verify_database_connection() -> bool:
+    try:
+        async with AsyncSession(engine) as session:
+            await session.execute(text("SELECT 1"))
+            return True
+    except Exception:
+        return False

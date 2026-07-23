@@ -1,0 +1,138 @@
+
+services:
+  # --- RELATIONAL DATABASE SERVICE ---
+  # Domain Name 1: postgres-db
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: production_postgres
+    environment:
+      POSTGRES_USER: production_user
+      POSTGRES_PASSWORD: SecureProdPassword2026!
+      POSTGRES_DB: production_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - production_network
+    #Native PG health check prevents the backend from booting until DB is fully accepting queries
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"] 
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # --- NEW:  POSTGRESQL WEB ADMINISTRATION INTERFACE ---
+  pgadmin:
+    image: dpage/pgadmin4:8.9
+    container_name: production_pgadmin 
+    environment:
+      # Credentials used strictly to Log into the pgAdmin website dashboard 
+      - PGADMIN_DEFAULT_EMAIL=admin@production.local 
+      - PGADMIN_DEFAULT_PASSWORD=AdminDashboardPassword2026!
+      - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=True
+    ports:
+      - "5050:80"  # Binds pgAdmin web server to port 5050 on your Local machine 
+    volumes:
+      - pgadmin_production_data:/var/lib/pgadmin 
+    networks:
+      - production_network 
+    depends_on:
+      - postgres-db 
+    restart: always
+
+    # --- FASTAPI BACKEND API SERVICE ---
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile 
+    container_name: production_backend 
+    
+    environment:
+      # RULE 1: Connects to 'postgres-db' service container over internal port 5432
+      - DATABASE_URL=${DATABASE_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+    volumes:
+     - ./cache:/app/cache
+    networks:
+      - production_network 
+    depends_on: 
+      postgres-db:
+        condition: service_healthy 
+    restart: always  
+    
+  # --- TASK BORDER ---
+  redis-broker:
+    image:  redis:7-alpine 
+    container_name: production_redis 
+    networks:
+      - production_network 
+    restart: always
+
+
+  # --- CELERY EXECUTION WORKER --- 
+  celery-worker: 
+    build:
+      context: ./backend
+      dockerfile: Dockerfile 
+    container_name: production_celery_worker
+    command: celery -A app.celery_app.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      - redis-broker 
+      - postgres-db 
+    networks: 
+      - production_network
+    restart: always
+
+  # --- CELERY TIME SCHEDULER ---
+  celery-beat:
+    build:
+      context: ./backend 
+      dockerfile: Dockerfile
+    container_name: production_celery_beat 
+    command: celery -A app.celery_app.celery_app beat --loglevel=info 
+    environment:
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      - redis-broker
+    networks: 
+      - production_network
+    restart: always
+
+    # --- NEXT.JS FRONTEND SERVICE ---
+  frontend-next:
+    build:
+      context: ./frontend 
+      dockerfile: Dockerfile
+
+    container_name: production_frontend
+    ports: 
+      - "3000:3000"
+    volumes:
+      - ./backend/cache:/app/public
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    networks:
+      - production_network 
+    depends_on:
+      - backend-api 
+    restart: always
+
+    # --- ISOLATED NETWORKS & PERSISTENT VOLUMES ---
+networks:
+  production_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_production_data:
+    driver: local
+

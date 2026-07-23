@@ -1,0 +1,41 @@
+// frontend/src/app/api/system-metrics/route.ts 
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+// Define the exact shape of incoming data expected from Python
+export interface SystemMetrics {
+    report_date: string;
+    total_active_users: number;
+    total_revenue_usd: number;
+    anomaly_detected: boolean;
+}
+
+export async function GET() {
+    try {
+        // In a real app, this path resolves to your persistent volumne or database cache
+        const cachePath = path.join(process.cwd(), '../backend/cache/auto_latest_report.json');
+
+        let data = {
+            report_date: '',
+            total_active_users: 0,
+            total_revenue_usd: 0,
+            anomaly_detected: false
+        };
+
+        // Graceful fallback safeguard if the shared folder is not yet initialized
+        if (fs.existsSync(cachePath)) {
+            const rawData = fs.readFileSync(cachePath, 'utf-8');
+            data = JSON.parse(rawData);
+        }
+
+
+        // Auto-inject cache headers to keep server Load Low
+        return NextResponse.json(data,/* {
+            headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59' }
+        }*/);
+
+    } catch (error) {
+        return NextResponse.json({ error: 'Automated report file not ready' }, { status: 500} );;
+    }
+}
