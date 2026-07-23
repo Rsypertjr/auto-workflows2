@@ -3,5 +3,5 @@
     "total_active_users": 8,
     "total_revenue_usd": 15720.98,
     "anomaly_detected": true,
-    "ai_written_summary": "System operational activity for the target processing date of 2026-07-23 demonstrates solid revenue velocity, capturing $15,720.98 in total gross extracted value across 8 active invoices. However, structural analysis reveals potential transaction bundling or metadata anomalies, evidenced by distinct user accounts sharing identical email message identifiers (`19f8823256f31ac6`) and source file manifests."
+    "ai_written_summary": "As of the July 23, 2026 processing cycle, revenue velocity generated a total gross extracted value of $15,720.98 across 8 active invoices, yielding a strong average billing rate of $1,965.12 per transaction. Structural analysis reveals a potential 24-hour batch ingestion latency anomaly, as active records trace back to a single source file (`invoice_20260722_044348.csv`) and shared email message ID despite reflecting mid-July signup dates."
 }
