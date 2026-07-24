@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --timeout 120 --retries 5 -r requirements.txt
+# FIX: Explicitly target the system package tree, bypassing the private /root/ user directory
+RUN pip install --no-cache-dir --target=/usr/local/lib/python3.11/site-packages -r requirements.txt
+RUN pip install --no-cache-dir --no-warn-script-location celery
 
 
 # --- STAGE 2:  FINAL RUNTIME ENVIRONMENT ---
@@ -36,7 +38,7 @@ RUN groupadd -g 1000 appuser && useradd -r -u 1000 -g appuser appuser
 RUN chown -R appuser:appuser /app
 
 # Install Google API client libraries
-RUN pip install --no-cache-dir --timeout 120 --retries 5 google-api-python-client google-auth-httplib2 google-auth-oauthlib
+RUN pip install --no-cache-dir google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
 # FIX: Explicitly mount the user local binaries to the system binary PATH
 ENV PATH=/root/.local/bin:$PATH
