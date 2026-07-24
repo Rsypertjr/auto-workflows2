@@ -17,10 +17,11 @@ services:
       - production_network
     #Native PG health check prevents the backend from booting until DB is fully accepting queries
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"] 
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     restart: always
 
   # --- FASTAPI BACKEND API SERVICE ---
