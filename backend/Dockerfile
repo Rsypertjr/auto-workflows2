@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 # FIX: Explicitly target the system package tree, bypassing the private /root/ user directory
 RUN pip install --no-cache-dir --target=/usr/local/lib/python3.11/site-packages -r requirements.txt
-RUN pip install --no-cache-dir --install-option="--install-scripts=/usr/local/bin" celery
+RUN pip install --no-cache-dir --no-warn-script-location celery
 
 
 # --- STAGE 2:  FINAL RUNTIME ENVIRONMENT ---
