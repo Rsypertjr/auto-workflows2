@@ -47,7 +47,7 @@ export default function AutomatedDashboard() {
                 🤖 Gen-AI Executive Summary
                 </h2>
                 <p style={{ fontSize: '1.125rem', lineHeight: '1.6', color: '#1e3a8a', margin: 0, fontWeight: 500 }}>
-                "{metrics.ai_written_summary}"
+                &quot;{metrics.ai_written_summary}&quot;
                 </p>
             </section>
 

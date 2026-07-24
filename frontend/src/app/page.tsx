@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 // Define the exact TypeScript interface matching the backend /health schema
 interface SystemMetrics {
