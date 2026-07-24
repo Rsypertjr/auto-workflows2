@@ -1,10 +1,49 @@
-node_modules
-.git
-.specstory
-.vscode
+# ── Environment & secrets ─────────────────────────────────────────────────────
 .env*
-scaffold.sh
-frontend/.next/*
-frontend/node_modules/*
 backend/tasks/token.json
+backend/credentials.json
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+backend/venv/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Node / Next.js ─────────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+
+# ── Docker ─────────────────────────────────────────────────────────────────────
+*.env.local
+
+# ── GitHub Actions runner ──────────────────────────────────────────────────────
+actions-runner/
+
+# ── Editor & OS ────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Misc project files ─────────────────────────────────────────────────────────
+.specstory/
+scaffold.sh
 commands.txt
