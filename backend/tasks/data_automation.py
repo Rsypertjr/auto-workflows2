@@ -133,6 +133,11 @@ def automate_monthly_report():
             json.dump(metrics, f, indent=4)
 
         print("✅ Production Data Automation Complete. System Cache Synced.")
+        from tasks.parse_invoices import get_invoices
+    
+        master_df = get_invoices()
+        print("📤 Pipelining data to Postgres SQL data store!")
+        asyncio.run(pipeline_dataframe_to_sql(master_df))        
 
     except Exception as e:
         print(f"❌ PIPELINE ERROR ALERT: {e}")
@@ -194,8 +199,4 @@ async def pipeline_dataframe_to_sql(df: pd.DataFrame):
 if __name__ == "__main__":
     # Do your processing, math operations, or export pipelines here
     automate_monthly_report()
-    from tasks.parse_invoices import get_invoices
-
-    master_df = get_invoices()
-    print("📤 Pipelining data to Postgres SQL data store!")
-    asyncio.run(pipeline_dataframe_to_sql(master_df))
+ 
