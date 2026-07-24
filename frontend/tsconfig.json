@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -12,7 +13,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -23,6 +24,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/system_metrics/route.ts.bak"],
-  "exclude": ["node_modules", "__tests__", "vitest.config.ts"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/system_metrics/route.ts.bak", "vitest.setup.mts", "vitest.config.mts"],
+  "exclude": ["node_modules", "__tests__", "vitest.config.mts"]
 }

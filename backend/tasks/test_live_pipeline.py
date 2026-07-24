@@ -2,7 +2,7 @@ import asyncio
 import pandas as pd
 from tasks.data_automation import pipeline_dataframe_to_sql
 
-async def test_live_pipeline():
+async def live_pipeline():
     # All keys explicitly match MasterInvoice variable properties
     sample_data = {
         'user_id': [2041, 2042, 2043, 2044, 2041],
