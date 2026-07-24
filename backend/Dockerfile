@@ -37,6 +37,9 @@ COPY . .
 RUN groupadd -g 1000 appuser && useradd -r -u 1000 -g appuser appuser
 RUN chown -R appuser:appuser /app
 
+# Switch to the non-root user so all application processes launch safely
+USER appuser
+
 # Install Google API client libraries
 RUN pip install --no-cache-dir google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
