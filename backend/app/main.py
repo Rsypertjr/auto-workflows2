@@ -1,16 +1,14 @@
 import time
 import pytest
 import psycopg2
-from typing import Dict, Any 
+from typing import Dict, Any
 from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field 
-import psutil 
+from pydantic import BaseModel, Field
+import psutil
 import os
 import json
 from dotenv import load_dotenv
-
-
 
 app = FastAPI(title="Production Monitoring API")
 load_dotenv()
@@ -19,7 +17,9 @@ load_dotenv()
 # Allows your Next.js container (port 3000) to safely talk to your Python container (port 8000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict this to specific domains in a real production environment
+    allow_origins=[
+        "*"
+    ],  # Restrict this to specific domains in a real production environment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,34 +28,49 @@ app.add_middleware(
 
 # --- PYDANTIC RESPONSE SCHEMAS --
 class SystemMetrics(BaseModel):
-    cpu_usage_percent: float = Field(..., description="Current system-wide CPU utilization")
+    cpu_usage_percent: float = Field(
+        ..., description="Current system-wide CPU utilization"
+    )
     memory_usage_percent: float = Field(..., description="Ram utilization percentage")
-    memory_used_gb: float = Field(..., description="Total active memory consumed in Gigabytes")
-    
+    memory_used_gb: float = Field(
+        ..., description="Total active memory consumed in Gigabytes"
+    )
+
+
 class HealthStatus(BaseModel):
-    status: str 
-    database: str 
-    db_latency_ms: float 
+    status: str
+    database: str
+    db_latency_ms: float
     system_metrics: SystemMetrics
 
- 
+
 # ----- PYDANTIC RESPONSE SCHEMA ---
 # Guarantees type saftey for the outgoing payload matching your pipeline structure
 class AutomationReportPayload(BaseModel):
     report_date: str = Field(..., description="Timestamp of the data run")
-    total_active_users: int = Field(..., description="Calculated total accounts processed")
-    total_revenue_usd: float = Field(..., description="Total gross value extracted from file") 
-    anomaly_detected: bool = Field(..., description="Flag indicating threshold variance")
-    ai_written_summary: str = Field(..., description="Natural language semantic analysis from Gemini")
-    
+    total_active_users: int = Field(
+        ..., description="Calculated total accounts processed"
+    )
+    total_revenue_usd: float = Field(
+        ..., description="Total gross value extracted from file"
+    )
+    anomaly_detected: bool = Field(
+        ..., description="Flag indicating threshold variance"
+    )
+    ai_written_summary: str = Field(
+        ..., description="Natural language semantic analysis from Gemini"
+    )
 
-    
+
 class TrueContainerMetrics(BaseModel):
-    memory_usage_percent: float = Field(..., description="Container restricted Memory Usage Percent")
-    memory_used_gb: float = Field(...,description="Container restricted Memory Used Gigabytes")
-    
+    memory_usage_percent: float = Field(
+        ..., description="Container restricted Memory Usage Percent"
+    )
+    memory_used_gb: float = Field(
+        ..., description="Container restricted Memory Used Gigabytes"
+    )
 
-    
+
 # --- LIVE HEALTH ENDPOINT ---
 @app.get("/health", response_model=HealthStatus)
 async def get_health_status(response: Response):
@@ -63,87 +78,83 @@ async def get_health_status(response: Response):
     Comprehensive Live Health Endpoint.
     Validates physical DB infrastructure and collects server resource telemetry.
     """
-    # 1. Measure Live Database Connectivity and Latency 
+    # 1. Measure Live Database Connectivity and Latency
     start_time = time.perf_counter()
     db_connected = await verify_database_connected()
     print("Database Connected:", db_connected)
     end_time = time.perf_counter()
-    
+
     db_latency = round((end_time - start_time) * 1000, 2) if db_connected else 0.0
-    
-    # 2. Gather Real-Time Server Telemetry via psutil 
+
+    # 2. Gather Real-Time Server Telemetry via psutil
     # interval=None provides an non-blocking instant snapshot calculation
     cpu_percent = psutil.cpu_percent(interval=None)
     virtual_mem = psutil.virtual_memory()
-    mem_used_gb = round(virtual_mem.used / (1024 ** 3), 2)    
-    
+    mem_used_gb = round(virtual_mem.used / (1024**3), 2)
+
     metrics = SystemMetrics(
         cpu_usage_percent=cpu_percent,
         memory_usage_percent=virtual_mem.percent,
-        memory_used_gb=mem_used_gb
+        memory_used_gb=mem_used_gb,
     )
-    
-    # 3. Determine Overall Status 
-    # If the database goes down or hardware resources melt, signal an unhealthy system 
+
+    # 3. Determine Overall Status
+    # If the database goes down or hardware resources melt, signal an unhealthy system
     if not db_connected or cpu_percent > 95.0 or virtual_mem.percent > 90.0:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
         return HealthStatus(
             status="unhealthy",
             database="disconnected" if not db_connected else "overloaded",
             db_latency_ms=db_latency,
-            system_metrics=metrics            
+            system_metrics=metrics,
         )
-        
+
     return HealthStatus(
         status="healthy",
         database="connected",
-        db_latency_ms=db_latency, 
-        system_metrics=metrics
+        db_latency_ms=db_latency,
+        system_metrics=metrics,
     )
-    
-    
 
-# --- LIVE AUTOMATION METRICS ENDPOINT --- 
+
+# --- LIVE AUTOMATION METRICS ENDPOINT ---
 @app.get("/api/reports/latest", response_model=AutomationReportPayload)
 async def get_latest_automation_report(response: Response):
     """
     Exposes the results generated by data_automation.py to external clients.
     Reads from the synchronized JSON file cache layer
     """
-    # Define absolute path to match your cluster file hierarchy 
+    # Define absolute path to match your cluster file hierarchy
     cache_path = path = os.path.join(os.getcwd(), "cache/latest_report.json")
     print(cache_path)
     # 1. Fallback Safeguard: If the task hasn't run yet, alert the client gracefully
     if not os.path.exists(cache_path):
-        response.status_code = status.HTTP_404_NOT_FOUND 
+        response.status_code = status.HTTP_404_NOT_FOUND
         return AutomationReportPayload(
             report_date="N/A",
             total_active_users=0,
             total_revenue_usd=0.0,
             anomaly_detected=False,
-            ai_written_summary="Pipeline cache has not been initalized.  Trigger the automation task script first."
+            ai_written_summary="Pipeline cache has not been initalized.  Trigger the automation task script first.",
         )
 
-    # 2. Extract and Parse the JSON Data Layer 
+    # 2. Extract and Parse the JSON Data Layer
     try:
         with open(cache_path, "r") as f:
             raw_data = json.load(f)
-            
-        # Instantiate Pydantic model to automatically validate data formatting compliance 
+
+        # Instantiate Pydantic model to automatically validate data formatting compliance
         validated_payload = AutomationReportPayload(**raw_data)
-        return validated_payload 
+        return validated_payload
     except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR 
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return AutomationReportPayload(
             report_date="ERROR",
             total_active_users=0,
             total_revenue_usd=0.0,
             anomaly_detected=True,
-            ai_written_summary=f"Failed to read automated report stream.  Details: {str(e)}"
+            ai_written_summary=f"Failed to read automated report stream.  Details: {str(e)}",
         )
-
-
-
 
 
 # --- LIVE CONTAINER METRICS ENDPOINT ---
@@ -153,29 +164,28 @@ async def get_container_metrics(response: Response):
     Actual Container Memory Metrics Endpoint.
     Collects Container-Isolated Resource Telemetry.
     """
-    from  tasks.get_true_container_metrics import get_true_container_memory
+    from tasks.get_true_container_metrics import get_true_container_memory
+
     metrics = get_true_container_memory()
     return TrueContainerMetrics(
-        memory_usage_percent= metrics["memory_usage_percent"],
-        memory_used_gb= metrics["memory_used_gb"]
+        memory_usage_percent=metrics["memory_usage_percent"],
+        memory_used_gb=metrics["memory_used_gb"],
     )
 
-    
+
 async def verify_database_connected() -> bool:
     """Executes a low-overhead query to ensure the remote server is actively listening."""
     try:
-       
+
         connection = psycopg2.connect(
-            host="127.0.0.1",       # Server address (e.g., "127.0.0.1" or remote IP)
-            database="postgres",     # Name of your specific database
-            user="postgres",        # Your PostgreSQL username
-            password="syp3rtjr2!",# Your PostgreSQL password
-            port="5434"             # Default PostgreSQL port
+            host="127.0.0.1",  # Server address (e.g., "127.0.0.1" or remote IP)
+            database="postgres",  # Name of your specific database
+            user="postgres",  # Your PostgreSQL username
+            password="syp3rtjr2!",  # Your PostgreSQL password
+            port="5434",  # Default PostgreSQL port
         )
-        return True 
+        return True
     except Exception as error:
         print(f"Error connecting to database: {error}")
-        # Capture all networkl timeouts, auth failures, or DNS drops here 
+        # Capture all networkl timeouts, auth failures, or DNS drops here
         return False
-
-            

@@ -1,4 +1,4 @@
-import os 
+import os
 from celery import Celery
 from celery.schedules import crontab
 
@@ -19,15 +19,15 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     "run-data-automation-every-hour": {
         "task": "app.celery_app.automated_report.task",
-        "schedule":crontab(minute=0), # Runs exactly at the top of every hour
+        "schedule": crontab(minute=0),  # Runs exactly at the top of every hour
     },
 }
 
-@celery_app.task 
+
+@celery_app.task
 def automated_report_task():
     """Celery wrapper executing the underlying processing script logic."""
     from tasks.data_automation import automate_monthly_report
+
     print("🚀 Celery Worker:  Initializing automated data execution script...")
     automate_monthly_report()
-     
-     
