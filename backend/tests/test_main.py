@@ -20,6 +20,7 @@ def test_automated_health_check():
         #assert response.status_code == 200
         json_data = response.json()
         print(json_data)
+        assert response.status_code == 200
         assert isinstance(json_data['db_latency_ms'], numbers.Number)
         assert schema(expected_schema) == json_data['system_metrics']
     

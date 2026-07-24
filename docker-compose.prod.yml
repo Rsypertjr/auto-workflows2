@@ -6,9 +6,9 @@ services:
     image: postgres:16-alpine
     container_name: production_postgres
     environment:
-      POSTGRES_USER: production_user
-      POSTGRES_PASSWORD: SecureProdPassword2026!
-      POSTGRES_DB: production_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -23,26 +23,7 @@ services:
       retries: 5
     restart: always
 
-  # --- NEW:  POSTGRESQL WEB ADMINISTRATION INTERFACE ---
-  pgadmin:
-    image: dpage/pgadmin4:8.9
-    container_name: production_pgadmin 
-    environment:
-      # Credentials used strictly to Log into the pgAdmin website dashboard 
-      - PGADMIN_DEFAULT_EMAIL=admin@production.local 
-      - PGADMIN_DEFAULT_PASSWORD=AdminDashboardPassword2026!
-      - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=True
-    ports:
-      - "5050:80"  # Binds pgAdmin web server to port 5050 on your Local machine 
-    volumes:
-      - pgadmin_production_data:/var/lib/pgadmin 
-    networks:
-      - production_network 
-    depends_on:
-      - postgres-db 
-    restart: always
-
-    # --- FASTAPI BACKEND API SERVICE ---
+  # --- FASTAPI BACKEND API SERVICE ---
   backend-api:
     build:
       context: ./backend

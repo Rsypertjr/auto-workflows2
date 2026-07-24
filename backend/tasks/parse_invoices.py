@@ -2,7 +2,6 @@ import os
 import base64 
 import io 
 import pandas as pd
-import asyncio
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
@@ -145,12 +144,4 @@ async def pipeline_to_sql(df):
     from tasks.data_automation import pipeline_dataframe_to_sql
     await pipeline_dataframe_to_sql(df)
 
-def main():
-    master_df = get_invoices()    
-    # Do your processing, math operations, or export pipelines here
-    print("📤 Pipelining data to Postgres SQL data store!")    
-    asyncio.run(pipeline_to_sql(master_df))
-        
-    return master_df
-if __name__ == '__main__':
-    main()
+  

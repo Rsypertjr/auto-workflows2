@@ -24,6 +24,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/system_metrics/route.ts.bak", "vitest.setup.mts", "vitest.config.mts"],
-  "exclude": ["node_modules", "__tests__", "vitest.config.mts"]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/metrics/route.ts", "src/app/api/system_metrics/route.ts.bak", "vitest.setup.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "__tests__", "vitest.config.ts"]
 }

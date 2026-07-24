@@ -1,7 +1,7 @@
 {
-    "report_date": "2026-07-23",
+    "report_date": "2026-07-24",
     "total_active_users": 8,
     "total_revenue_usd": 15720.98,
     "anomaly_detected": true,
-    "ai_written_summary": "As of the July 23, 2026 processing cycle, revenue velocity generated a total gross extracted value of $15,720.98 across 8 active invoices, yielding a strong average billing rate of $1,965.12 per transaction. Structural analysis reveals a potential 24-hour batch ingestion latency anomaly, as active records trace back to a single source file (`invoice_20260722_044348.csv`) and shared email message ID despite reflecting mid-July signup dates."
+    "ai_written_summary": "AI generation trace failed during execution: 503 UNAVAILABLE. This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
 }

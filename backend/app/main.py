@@ -1,5 +1,4 @@
 import time
-from datetime import date
 import pytest
 import psycopg2
 from typing import Dict, Any 
@@ -7,29 +6,10 @@ from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field 
 import psutil 
-import subprocess
 import os
 import json
-from sqlalchemy.ext.asyncio import create_async_engine
 from dotenv import load_dotenv
 
-from sqlalchemy import BigInteger, Date, Numeric, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-class Base(DeclarativeBase):
-    pass
-
-class MasterInvoice(Base):
-    __tablename__ = "master_invoices"    
-    
-    # Auto-incrementing primary key ID for structural safety
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    signup_date: Mapped[date] = mapped_column(Date, nullable=False)
-    billing: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    source_file: Mapped[str] = mapped_column(String(255), nullable=False)
-    email_message_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    
 
 
 app = FastAPI(title="Production Monitoring API")
@@ -45,16 +25,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from sqlalchemy.ext.asyncio import create_async_engine
-
-# FIX: Add '+asyncpg' to your hardcoded fallback string as well
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql+asyncpg://production_user:SecureProdPassword2026!@postgres-db:5432/production_db"
-)
-
-# Initialize the async client engine safely
-engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
 
 # --- PYDANTIC RESPONSE SCHEMAS --
 class SystemMetrics(BaseModel):

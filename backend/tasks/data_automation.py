@@ -1,14 +1,14 @@
 import os
 import io 
 import json 
-import imaplib 
-
-import email 
-from datetime import datetime 
+import asyncio 
 import pandas as pd 
+from datetime import datetime 
+from datetime import date
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.main import engine, MasterInvoice, Base
+from sqlalchemy import BigInteger, Date, Numeric, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from google import genai
 from tasks.parse_invoices import get_invoices
 
@@ -20,6 +20,32 @@ if not api_key:
 
 # 2. Configure the library with your API key
 client = genai.Client(api_key=api_key)
+
+
+from sqlalchemy.ext.asyncio import create_async_engine
+
+# FIX: Add '+asyncpg' to your hardcoded fallback string as well
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql+asyncpg://production_user:SecureProdPassword2026!@postgres-db:5432/production_db"
+)
+# Initialize the async client engine safely
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
+
+class Base(DeclarativeBase):
+    pass
+
+class MasterInvoice(Base):
+    __tablename__ = "master_invoices"    
+    
+    # Auto-incrementing primary key ID for structural safety
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    signup_date: Mapped[date] = mapped_column(Date, nullable=False)
+    billing: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    source_file: Mapped[str] = mapped_column(String(255), nullable=False)
+    email_message_id: Mapped[str] = mapped_column(String(64), nullable=False)   
+
 
 
 def generate_ai_narrative_summary(metrics: dict, df_head: str) -> str:
@@ -42,7 +68,7 @@ def generate_ai_narrative_summary(metrics: dict, df_head: str) -> str:
     
     
     try:
-        # Execute streaming prompt against the recommended Gemini 2.5 Flash architecture model 
+        # Execute streaming prompt against the recommended Gemini 3.6 Flash architecture model 
         response = client.models.generate_content(
             model="gemini-3.6-flash",
             contents=prompt
@@ -166,7 +192,12 @@ async def pipeline_dataframe_to_sql(df: pd.DataFrame):
         
         
 if __name__ == "__main__": 
+    # Do your processing, math operations, or export pipelines here
     automate_monthly_report()
+    from tasks.parse_invoices import get_invoices
+    master_df = get_invoices()
+    print("📤 Pipelining data to Postgres SQL data store!")    
+    asyncio.run(pipeline_dataframe_to_sql(master_df))
         
         
     
