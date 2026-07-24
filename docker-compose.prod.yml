@@ -80,6 +80,7 @@ services:
       context: ./backend 
       dockerfile: Dockerfile
     container_name: production_celery_beat 
+    user: "1000:1000"
     command: celery -A app.celery_app.celery_app beat --loglevel=info 
     environment:
       - REDIS_URL=${REDIS_URL}
