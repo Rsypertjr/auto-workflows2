@@ -10,11 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-COPY credentials.json .
 # FIX: Explicitly target the system package tree, bypassing the private /root/ user directory
 RUN pip install --no-cache-dir --target=/usr/local/lib/python3.11/site-packages -r requirements.txt
 RUN pip install --no-cache-dir --no-warn-script-location celery
-
 
 # --- STAGE 2:  FINAL RUNTIME ENVIRONMENT ---
 FROM python:3.11-slim AS runner
