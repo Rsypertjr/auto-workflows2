@@ -9,10 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-
-# Copy and install python dependencies into a local directory
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# FIX: Explicitly target the system package tree, bypassing the private /root/ user directory
+RUN pip install --no-cache-dir --target=/usr/local/lib/python3.11/site-packages -r requirements.txt
+RUN pip install --no-cache-dir --install-option="--install-scripts=/usr/local/bin" celery
+
 
 # --- STAGE 2:  FINAL RUNTIME ENVIRONMENT ---
 FROM python:3.11-slim AS runner
@@ -25,10 +26,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \ 
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the pre-built packages from the builder stage over to this clean image
-COPY --from=builder /root/.local /root/.local
+
+# Copy system packages cleanly so they match your non-root container constraints
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
 
+
+# Create a secure, non-privileged system application user matching your UID/GID parameters
+RUN groupadd -g 1000 appuser && useradd -r -u 1000 -g appuser appuser
+RUN chown -R appuser:appuser /app
 
 # Install Google API client libraries
 RUN pip install --no-cache-dir google-api-python-client google-auth-httplib2 google-auth-oauthlib
