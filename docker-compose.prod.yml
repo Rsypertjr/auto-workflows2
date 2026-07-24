@@ -84,9 +84,11 @@ services:
       dockerfile: Dockerfile
     container_name: production_celery_beat 
     user: "1000:1000"
-    command: celery -A app.celery_app.celery_app beat --loglevel=info 
+     # FIX: Using strict list formats forces the -A parameter to bind only to your module path
+    command: ["celery", "-A", "app.celery_app.celery_app", "beat", "--loglevel=info"]
     environment:
-      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=postgresql+asyncpg://production_user:SecureProdPassword2026!@postgres-db:5432/production_db
+      - REDIS_URL=redis://redis-broker:6379/0
     depends_on:
       - redis-broker
     networks: 
