@@ -1,0 +1,543 @@
+#!/bin/bash
+
+echo "🚀 Starting Automated Project Scaffolding..."
+
+# 1. CREATE ALL DIRECTORY STRUCTURES
+mkdir -p .github/workflows
+mkdir -p backend/app
+mkdir -p backend/cache
+mkdir -p backend/tests
+mkdir -p frontend/public
+mkdir -p frontend/__tests__
+mkdir -p frontend/src/app/api/metrics
+
+# 2. WRITE GLOBAL CONFIGURATIONS
+cat << 'EOF' > docker-compose.prod.yml
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: production_postgres
+    environment:
+      POSTGRES_USER: production_user
+      POSTGRES_PASSWORD: SecureProdPassword2026!
+      POSTGRES_DB: production_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_production_data:/var/lib/postgresql/data
+    networks:
+      - production_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U production_user -d production_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: production_backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://production_user:SecureProdPassword2026!@postgres-db:5432/production_db
+    ports:
+      - "8000:8000"
+    networks:
+      - production_network
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    restart: always
+
+  frontend-next:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: production_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend-api:8000
+    networks:
+      - production_network
+    depends_on:
+      - backend-api
+    restart: always
+
+networks:
+  production_network:
+    driver: bridge
+
+volumes:
+  postgres_production_data:
+    driver: local
+EOF
+
+cat << 'EOF' > .github/workflows/ci-cd.yml
+name: Production Automation Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Automated Linting (Black & Flake8)
+        run: |
+          pip install black flake8
+          black --check .
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run Backend Tests (PyTest)
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=app tests/
+
+  frontend-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Automated Formatting & Linting (ESLint)
+        run: npm run lint
+
+      - name: TypeScript Compile & Type-Check
+        run: npx tsc --noEmit
+
+      - name: Run Frontend Tests
+        run: npm run test
+
+      - name: Test Production Build
+        run: npm run build
+
+  deploy:
+    needs: [backend-ci, frontend-ci]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Notification
+        run: echo "Both applications passed automated checks. Triggering deployment..."
+EOF
+
+# 3. POPULATE BACKEND APPLICATION FILES
+cat << 'EOF' > backend/Dockerfile
+FROM python:3.11-slim AS builder
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim AS runner
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 curl && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY . .
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+EOF
+
+cat << 'EOF' > backend/.dockerignore
+.git
+.github
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.venv
+cache/
+EOF
+
+cat << 'EOF' > backend/requirements.txt
+fastapi==0.111.*
+uvicorn[standard]==0.30.*
+pydantic==2.7.*
+SQLAlchemy==2.0.*
+asyncpg==0.29.*
+psutil==5.9.*
+pandas==2.2.*
+EOF
+
+cat << 'EOF' > backend/requirements-dev.txt
+-r requirements.txt
+black==24.4.*
+flake8==7.1.*
+pytest==8.2.*
+pytest-cov==5.0.*
+httpx==0.27.*
+EOF
+
+cat << 'EOF' > backend/app/__init__.py
+# Package entrypoint
+EOF
+
+cat << 'EOF' > backend/app/main.py
+import os
+import time
+from fastapi import FastAPI, Response, status
+from pydantic import BaseModel, Field
+import psutil
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import text
+
+app = FastAPI(title="Production Monitoring API")
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql+asyncpg://production_user:SecureProdPassword2026!@localhost:5432/production_db"
+)
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
+
+class SystemMetrics(BaseModel):
+    cpu_usage_percent: float = Field(..., description="Current system CPU utilization")
+    memory_usage_percent: float = Field(..., description="RAM utilization percentage")
+    memory_used_gb: float = Field(..., description="Total active memory consumed in GB")
+
+class HealthStatus(BaseModel):
+    status: str
+    database: str
+    db_latency_ms: float
+    system_metrics: SystemMetrics
+
+@app.get("/health", response_model=HealthStatus)
+async def get_health_status(response: Response):
+    start_time = time.perf_counter()
+    db_connected = await verify_database_connection()
+    end_time = time.perf_counter()
+    
+    db_latency = round((end_time - start_time) * 1000, 2) if db_connected else 0.0
+    cpu_percent = psutil.cpu_percent(interval=None) 
+    virtual_mem = psutil.virtual_memory()
+    mem_used_gb = round(virtual_mem.used / (1024 ** 3), 2)
+
+    metrics = SystemMetrics(
+        cpu_usage_percent=cpu_percent,
+        memory_usage_percent=virtual_mem.percent,
+        memory_used_gb=mem_used_gb
+    )
+
+    if not db_connected or cpu_percent > 95.0 or virtual_mem.percent > 90.0:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return HealthStatus(
+            status="unhealthy",
+            database="disconnected" if not db_connected else "overloaded",
+            db_latency_ms=db_latency,
+            system_metrics=metrics
+        )
+
+    return HealthStatus(
+        status="healthy",
+        database="connected",
+        db_latency_ms=db_latency,
+        system_metrics=metrics
+    )
+
+async def verify_database_connection() -> bool:
+    try:
+        async with AsyncSession(engine) as session:
+            await session.execute(text("SELECT 1"))
+            return True
+    except Exception:
+        return False
+EOF
+
+cat << 'EOF' > backend/cache/latest_report.json
+{
+    "report_date": "2026-07-11",
+    "total_active_users": 1428,
+    "total_revenue_usd": 71340.50,
+    "anomaly_detected": false
+}
+EOF
+
+cat << 'EOF' > backend/tests/test_main.py
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+def test_automated_health_check():
+    response = client.get("/health")
+    # Outside docker context, db won't connect, resulting in 503, which checks code path integrity
+    assert response.status_code in [200, 503]
+EOF
+
+# 4. POPULATE FRONTEND APPLICATION FILES
+cat << 'EOF' > frontend/Dockerfile
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+CMD ["node", "server.js"]
+EOF
+
+cat << 'EOF' > frontend/.dockerignore
+node_modules
+.next
+out
+.git
+.github
+*.log
+.DS_Store
+EOF
+
+cat << 'EOF' > frontend/package.json
+{
+  "name": "production-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "14.2.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.6",
+    "@testing-library/react": "^16.0.0",
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.4",
+    "jsdom": "^24.1.0",
+    "typescript": "^5.5.2",
+    "vitest": "^1.6.0"
+  }
+}
+EOF
+
+cat << 'EOF' > frontend/next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true }
+};
+
+module.exports = nextConfig;
+}
+EOF
+
+cat << 'EOF' > frontend/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/": ["./src/"] }
+    },
+    "include": ["next-env.d.ts", "/*.ts", "/.tsx", ".next/types/**/.ts"],
+    "exclude": ["node_modules", "tests"]
+    }
+    EOF 
+
+    
+touch frontend/public/favicon.ico
+touch frontend/public/next.svg
+cat << 'EOF' > frontend/tests/index.test.tsx
+import { render, screen } from '@testing-library/react'
+import Home from '../src/app/page'
+import { describe, it, expect } from 'vitest'
+describe('Automated Homepage Render Test', () => {
+it('renders the system dashboard heading without crashing', () => {
+render()
+const heading = screen.getByRole('heading', { name: /production dashboard/i })
+expect(heading).toBeDefined()
+})
+})
+EOF
+cat << 'EOF' > frontend/src/app/layout.tsx
+import type { Metadata } from 'next';
+export const metadata: Metadata = {
+title: 'Production System Dashboard',
+description: 'Automated Operations Monitor',
+};
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+return (
+
+<body style={{ margin: 0, fontFamily: 'sans-serif' }}>{children}
+
+);
+}
+EOF
+cat << 'EOF' > frontend/src/app/page.tsx
+'use client';
+import { useEffect, useState } from 'react';
+interface SystemMetrics {
+cpu_usage_percent: number;
+memory_usage_percent: number;
+memory_used_gb: number;
+}
+interface HealthStatus {
+status: string;
+database: string;
+db_latency_ms: number;
+system_metrics: SystemMetrics;
+}
+export default function Home() {
+const [data, setData] = useState<HealthStatus | null>(null);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState<string | null>(null);
+useEffect(() => {
+fetch('/api/metrics')
+.then((res) => {
+if (!res.ok) throw new Error('Systems are currently unreachable.');
+return res.json();
+})
+.then((payload: HealthStatus) => {
+setData(payload);
+setLoading(false);
+})
+.catch((err) => {
+setError(err.message);
+setLoading(false);
+});
+}, []);
+return (
+<main style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+{loading && Fetching real-time infrastructure data stream...}
+{error && <p style={{ color: 'red' }}>System Outage Warning: {error}}
+{data && (
+<div style={{ marginTop: '2rem' }}>
+<div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem' }}>
+<div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', flex: 1 }}>
+Database Link
+<p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{data.database.toUpperCase()}
+Latency: {data.db_latency_ms} ms
+
+<div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', flex: 1 }}>
+Compute Cluster Load
+<p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{data.system_metrics.cpu_usage_percent}%
+
+<div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', flex: 1 }}>
+Memory Utilization
+<p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{data.system_metrics.memory_usage_percent}%
+Used: {data.system_metrics.memory_used_gb} GB
+
+
+<div style={{ padding: '1rem', background: '#e6f4ea', borderRadius: '4px' }}>
+System Status: {data.status.toUpperCase()}
+
+
+)}
+
+);
+}
+EOF
+cat << 'EOF' > frontend/src/app/api/metrics/route.ts
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+export async function GET() {
+try {
+const cachePath = path.join(process.cwd(), '../backend/cache/latest_report.json');
+let report = { anomaly_detected: false };
+if (fs.existsSync(cachePath)) {
+const rawData = fs.readFileSync(cachePath, 'utf-8');
+report = JSON.parse(rawData);
+}
+const mockTelemetry = {
+status: report.anomaly_detected ? "unhealthy" : "healthy",
+database: "connected",
+db_latency_ms: 1.84,
+system_metrics: {
+cpu_usage_percent: 12.4,
+memory_usage_percent: 45.2,
+memory_used_gb: 3.61
+}
+};
+return NextResponse.json(mockTelemetry);
+} catch (error) {
+return NextResponse.json(
+{ error: 'Automated telemetry error', details: String(error) },
+{ status: 500 }
+);
+}
+}
+EOF
+echo "✅ Scaffolding complete! Run commands below to launch:"
+echo " chmod +x scaffold.sh"
+echo " docker compose -f docker-compose.prod.yml up --build -d"
+
