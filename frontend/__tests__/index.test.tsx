@@ -1,5 +1,6 @@
 // frontend/__tests__/index.test.tsx 
 
+import React from 'react'
 import { describe, it, expect } from 'vitest' // 1. Must be first
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
