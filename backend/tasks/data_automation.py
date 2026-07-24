@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import BigInteger, Date, Numeric, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from google import genai
-from parse_invoices import get_invoices
 
 # 1. Retrieve the API key from environment variables
 api_key = os.getenv("GEMINI_API_KEY")
@@ -133,6 +132,7 @@ def automate_monthly_report():
             json.dump(metrics, f, indent=4)
 
         print("✅ Production Data Automation Complete. System Cache Synced.")
+        from tasks.parse_invoices import get_invoices
         master_df = get_invoices()
         print("📤 Pipelining data to Postgres SQL data store!")
         asyncio.run(pipeline_dataframe_to_sql(master_df))
