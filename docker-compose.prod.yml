@@ -30,7 +30,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile 
     container_name: production_backend 
-    
+    user: "1000:1000"
+    dns:
+      - 8.8.8.8
     environment:
       # RULE 1: Connects to 'postgres-db' service container over internal port 5432
       - DATABASE_URL=${DATABASE_URL}
