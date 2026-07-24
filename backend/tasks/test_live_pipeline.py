@@ -41,4 +41,4 @@ async def live_pipeline():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_live_pipeline())
+    asyncio.run(live_pipeline())
