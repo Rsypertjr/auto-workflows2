@@ -64,7 +64,8 @@ services:
     command: celery -A app.celery_app.celery_app worker --loglevel=info
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
+      - REDIS_URL=${REDIS_URL}      
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - redis-broker 
       - postgres-db 
