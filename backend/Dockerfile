@@ -20,6 +20,9 @@ FROM python:3.11-slim AS runner
 
 WORKDIR /app 
 
+# Copies your local backend folder contents (including credentials.json) straight to /app
+COPY . .
+
 #  Install minimal runtime library dependencies required by PostgreSQL/system drivers 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
