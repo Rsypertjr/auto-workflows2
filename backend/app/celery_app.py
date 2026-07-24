@@ -3,8 +3,8 @@ from celery import Celery
 from celery.schedules import crontab
 
 # Initialize Celery targeting a Redis broker container
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis-broker:6379/0")
-celery_app = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+celery_app = Celery("production_tasks", broker=REDIS_URL, backend=REDIS_URL)
 
 # Configure Celery parameters
 celery_app.conf.update(
