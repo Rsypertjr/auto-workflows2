@@ -29,10 +29,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile 
+    user: "${UID:-1000}:${GID:-1000}" 
     container_name: production_backend 
-    user: "1000:1000"
-    dns:
-      - 8.8.8.8
     environment:
       # RULE 1: Connects to 'postgres-db' service container over internal port 5432
       - DATABASE_URL=${DATABASE_URL}
@@ -40,8 +38,7 @@ services:
     ports:
       - "8000:8000"
       - "8080:8080"
-    volumes:
-     - ./cache:/app/cache
+   
     networks:
       - production_network 
     depends_on: 
@@ -125,3 +122,4 @@ volumes:
     driver: local
   pgadmin_production_data:
     driver: local
+  

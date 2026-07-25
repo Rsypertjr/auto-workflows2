@@ -8,6 +8,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
 
 # API Permissions requested
 SCOPES = ["https://mail.google.com/"]
@@ -15,21 +16,29 @@ SCOPES = ["https://mail.google.com/"]
 
 def get_creds():
     creds = None
-    # token.json stores the user's access and refresh tokens
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-
+    # The file token.json stores the user's access and refresh tokens.
+    # It is created automatically when the authorization flow completes for the first time.
+    if os.path.exists('./token.json'):
+        creds = Credentials.from_authorized_user_file('./token.json', SCOPES)
+        
+    # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Inside Docker, Local server auth will fail unless ports are mapped
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-
+            flow = InstalledAppFlow.from_client_secrets_file(
+                './credentials.json', SCOPES)
+            # Opens a local server to handle the browser authentication redirect
             creds = flow.run_local_server(
-                port=8080, open_browser=False, prompt="consent"
+                host='localhost',
+                port=8080,
+                authorization_prompt_message='Please visit this URL to authorize this application: {url}',
+                success_message='The authentication flow has completed. You may close this window.',
+                open_browser=False # This stops the script from looking for a browser
             )
-        with open("token.json", "w") as token:
+                        
+        # Save the credentials for the next run
+        with open('./token.json', 'w') as token:
             token.write(creds.to_json())
     return creds
 

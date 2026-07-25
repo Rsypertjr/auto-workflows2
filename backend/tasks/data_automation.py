@@ -128,10 +128,12 @@ def automate_monthly_report():
         metrics["ai_written_summary"] = ai_narrative
 
         # 4. ATOMICALLY OVERWRITE CACHE PERSISTENCE FRAMEWORK
+      
+        # Write your JSON file   
         os.makedirs("./cache", exist_ok=True)
         with open("./cache/latest_report.json", "w") as f:
             json.dump(metrics, f, indent=4)
-
+            
         print("✅ Production Data Automation Complete. System Cache Synced.")
 
         master_df = get_invoices()

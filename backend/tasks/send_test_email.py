@@ -10,6 +10,7 @@ import pandas as pd
 
 # --- GOOGLE SECURE WEB OAUTH COMPONENT CLIENTS ---
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
@@ -90,17 +91,31 @@ def build_raw_mime_message() -> str:
 
 def send_test_invoice_email():
     """Authenticates via Web OAuth and posts the data message to the Gmail API router."""
-    token_path = "token.json"
-    credentials_json = "credentials.json"  # App credentials from Google Cloud Console
+    #token_path = "token.json"# Resolve the absolute path to your key file inside the container
+    
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    service_account_json = os.path.join(base_dir, 'service_account.json')
+    
+    #credentials_json = "credentials.json"  # App credentials from Google Cloud Console
     creds = None
 
     # 1. Look for existing saved authentication configurations
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    #if os.path.exists(token_path):
+        #creds = Credentials.from_authorized_user_file(token_path, SCOPES)           
+    
+    if not os.path.exists(service_account_json):
+        print(f"❌ Error: Automated key missing at path: {service_account_json}")
+        return
 
     # 2. Trigger the requested Login server challenge flow if no cache tokens exit
-    creds = get_creds()
+    #creds = get_creds()
     try:
+        # Load the credentials directly without opening any browser servers
+        creds = service_account.Credentials.from_service_account_file(
+            service_account_json, 
+            scopes=SCOPES
+        ).with_subject('richardsypertjr@gmail.com')
+        
         print(" 📡 Connecting to Gmail REST API Engine over Port 443...")
         service = build("gmail", "v1", credentials=creds)
 

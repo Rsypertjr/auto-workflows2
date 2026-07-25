@@ -14,36 +14,19 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --target=/usr/local/lib/python3.11/site-packages -r requirements.txt
 RUN pip install --no-cache-dir --no-warn-script-location celery
 
-# --- STAGE 2:  FINAL RUNTIME ENVIRONMENT ---
+# --- STAGE 2: PRODUCTION RUNTIME ---
 FROM python:3.11-slim AS runner
-
-WORKDIR /app 
-
-# Copies your local backend folder contents (including credentials.json) straight to /app
-COPY . .
-
-#  Install minimal runtime library dependencies required by PostgreSQL/system drivers 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \ 
-    && rm -rf /var/lib/apt/lists/*
-
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libpq5 curl && rm -rf /var/lib/apt/lists/*
 
 # Copy system packages cleanly so they match your non-root container constraints
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
 
-
 # Create a secure, non-privileged system application user matching your UID/GID parameters
 RUN groupadd -g 1000 appuser && useradd -r -u 1000 -g appuser appuser
 RUN chown -R appuser:appuser /app
-
-# Switch to the non-root user so all application processes launch safely
-USER appuser
-
-# Install Google API client libraries
-RUN pip install --no-cache-dir google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
 # FIX: Explicitly mount the user local binaries to the system binary PATH
 ENV PATH=/root/.local/bin:$PATH
