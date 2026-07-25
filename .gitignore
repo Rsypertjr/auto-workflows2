@@ -1,6 +1,7 @@
 # ── Environment & secrets ─────────────────────────────────────────────────────
 .env*
 backend/tasks/token.json
+backend/tasks/credentials.json
 backend/credentials.json
 
 # ── Python ─────────────────────────────────────────────────────────────────────
