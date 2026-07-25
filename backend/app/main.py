@@ -142,6 +142,7 @@ async def get_latest_automation_report(response: Response):
     try:
         with open(cache_path, "r") as f:
             raw_data = json.load(f)
+            print("Raw Data:", raw_data)
 
         # Instantiate Pydantic model to automatically validate data formatting compliance
         validated_payload = AutomationReportPayload(**raw_data)

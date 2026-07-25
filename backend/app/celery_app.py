@@ -19,7 +19,7 @@ celery_app.conf.update(
 # Automated Task Schedule configuration
 celery_app.conf.beat_schedule = {
     "run-data-automation-every-hour": {
-        "task": "app.celery_app.automated_report.task",
+        "task": "app.celery_app.automated_report_task",
         "schedule": crontab(minute=0),  # Runs exactly at the top of every hour
     },
 }
