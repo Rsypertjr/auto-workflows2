@@ -92,10 +92,10 @@ def build_raw_mime_message() -> str:
 def send_test_invoice_email():
     """Authenticates via Web OAuth and posts the data message to the Gmail API router."""
     creds = None
-  
+
     try:
-        # Load the credentials directly without opening any browser servers       
-        creds = get_creds()        
+        # Load the credentials directly without opening any browser servers
+        creds = get_creds()
         print(" 📡 Connecting to Gmail REST API Engine over Port 443...")
         service = build("gmail", "v1", credentials=creds)
         if not service:
