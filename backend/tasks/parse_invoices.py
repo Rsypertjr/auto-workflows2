@@ -50,6 +50,7 @@ def get_gmail_service():
         # Automatically detects file path from GOOGLE_APPLICATION_CREDENTIALS env variable
         # service = build('gmail','v1')
         creds = get_creds()
+        print(" 📡 Connecting to Gmail REST API Engine over Port 443...")
         service = build("gmail", "v1", credentials=creds)
         return service
     except Exception as e:

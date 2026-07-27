@@ -111,10 +111,8 @@ def send_test_invoice_email():
     # creds = get_creds()
     try:
         # Load the credentials directly without opening any browser servers
-        creds = service_account.Credentials.from_service_account_file(
-            service_account_json, scopes=SCOPES
-        ).with_subject("richardsypertjr@gmail.com")
-
+       
+        creds = get_creds()        
         print(" 📡 Connecting to Gmail REST API Engine over Port 443...")
         service = build("gmail", "v1", credentials=creds)
 
