@@ -91,30 +91,15 @@ def build_raw_mime_message() -> str:
 
 def send_test_invoice_email():
     """Authenticates via Web OAuth and posts the data message to the Gmail API router."""
-    # token_path = "token.json"# Resolve the absolute path to your key file inside the container
-
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    service_account_json = os.path.join(base_dir, "service_account.json")
-
-    # credentials_json = "credentials.json"  # App credentials from Google Cloud Console
     creds = None
-
-    # 1. Look for existing saved authentication configurations
-    # if os.path.exists(token_path):
-    # creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-
-    if not os.path.exists(service_account_json):
-        print(f"❌ Error: Automated key missing at path: {service_account_json}")
-        return
-
-    # 2. Trigger the requested Login server challenge flow if no cache tokens exit
-    # creds = get_creds()
+  
     try:
-        # Load the credentials directly without opening any browser servers
-       
+        # Load the credentials directly without opening any browser servers       
         creds = get_creds()        
         print(" 📡 Connecting to Gmail REST API Engine over Port 443...")
         service = build("gmail", "v1", credentials=creds)
+        if not service:
+            return
 
         email_payload = build_raw_mime_message()
         print(" 📤 Sending encrypted transmission block...")
